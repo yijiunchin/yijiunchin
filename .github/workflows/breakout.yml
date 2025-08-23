@@ -1,4 +1,4 @@
-name: GitHub Breakout
+name: generate breakout svg
 
 on:
   schedule:
@@ -6,25 +6,34 @@ on:
   workflow_dispatch:
 
 jobs:
-  generate-svgs:
-    runs-on: ubuntu-latest
-    
-    # <--- 加上這個 permissions 區塊，賦予寫入權限
+  generate-svg:
     permissions:
       contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
-      # Step 1: 把你的 repo 程式碼載下來
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # Step 2: 執行產生 SVG 的主要 Action
-      - uses: cyprieng/github-breakout@main
+      - name: generate SVG
+        uses: cyprieng/github-breakout@v1.0.0
         with:
-          github_username: 'yijiunchin'
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-      
-      # Step 3: 自動把新產生的 SVG 檔案 commit 回你的 repo
-      - uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: 'docs: update github-breakout svgs'
-          file_pattern: 'output/*.svg'
+          github_username: ${{ github.repository_owner }}
+
+      - name: Move generated SVGs
+        run: |
+          mkdir -p images
+          mv output/light.svg images/breakout-light.svg
+          mv output/dark.svg images/breakout-dark.svg
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and push SVGs
+        run: |
+          git add images/breakout-light.svg images/breakout-dark.svg
+          git commit -m "chore: update breakout SVGs" || echo "No changes to commit"
+          git push
